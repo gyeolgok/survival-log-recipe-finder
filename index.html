@@ -2263,7 +2263,7 @@ function dynamicStats(r,items,qidx=0){
   const vitality=Math.round(items.reduce((s,x)=>s+(+x.vd5||0),0)*tc*qc);
   const base=r.outputs[qidx]||r.outputs[0]||{};
   const th=+r.satStd>0?+r.satStd:40, split=sat>th?Math.ceil(sat/th):1;
-  return {sat,split,portion:sat/split,morale:(+base.morale||0)/split,stamina:(+base.stamina||0)/split,health:health/split,vitality:vitality/split,tier:rt};
+  return {sat,split,portion:Math.floor(sat/split),portionRaw:sat/split,morale:(+base.morale||0)/split,stamina:(+base.stamina||0)/split,health:health/split,vitality:vitality/split,tier:rt};
 }
 function staticStats(r,qidx=0){
   const o=r.outputs[qidx]||r.outputs[0],split=+o.exactSplitCount||1;
@@ -2289,6 +2289,19 @@ function runGoldenRegression6028(){
     ingredients:items.map((it,i)=>({id:it.id,name:it.name,maxUseTimes:uses[i].max,remainingAfterCook:uses[i].remaining,returned:uses[i].returned}))};
   window.RECIPE_FINDER_GOLDEN_6028=result;
   if(!pass)console.error('[Recipe Finder] Golden 6028 regression failed',result);
+  return result;
+}
+
+// Golden display regression from v1.0.16756 in-game observation:
+// dynamic total VD 358, threshold 40 => 9 uses; the item card displays satiety +39 per use.
+// CalcSplit keeps the underlying float distribution, while the item-card satiety display truncates it.
+function runGoldenSplitDisplay358(){
+  const total=358, threshold=40;
+  const split=total>threshold?Math.ceil(total/threshold):1;
+  const portion=Math.floor(total/split);
+  const result={pass:split===9&&portion===39,totalSatiety:total,splitCount:split,displayPortionSatiety:portion,rawPortion:total/split};
+  window.RECIPE_FINDER_GOLDEN_SPLIT_358=result;
+  if(!result.pass)console.error('[Recipe Finder] Golden split-display 358 regression failed',result);
   return result;
 }
 
@@ -4340,6 +4353,6 @@ apply();
 </script>
 
 <!-- PUBLIC BETA v0.1 based on FIX42 R18.5. Core recipe logic preserved; public masthead/notice only. -->
-<script>try{runGoldenRegression6028();}catch(e){console.error('[Recipe Finder] Golden 6028 test error',e);}</script>
+<script>try{runGoldenRegression6028();runGoldenSplitDisplay358();}catch(e){console.error('[Recipe Finder] Golden regression test error',e);}</script>
 </body>
 </html>
